@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+        "module": "es6",
+        "target": "es2021",
+        "checkJs": true,
+        "baseUrl": "./",
+        "paths": {
+            "/*": [
+                "./*"
+            ]
+        }
+    }
+}
