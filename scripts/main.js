@@ -76,7 +76,8 @@ function reset() {
     global.targetCountry = getRandomCountry();
     global.elements.targetCountryImage.src = `/images/${global.targetCountry.code}.svg`;
     global.elements.guessInput.disabled = false;
-    global.elements.guessButton.textContent = 'Guess';
+    global.elements.guessButton.value = 'Guess';
+    global.elements.message.textContent = "";
     while (global.elements.guessList.firstChild) {
         global.elements.guessList.firstChild.remove();
     }
