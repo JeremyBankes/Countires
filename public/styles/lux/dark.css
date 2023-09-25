@@ -1,0 +1,12 @@
+:root {
+    --foreground-color: #cccccc;
+    --foreground-color-special: #ffffff;
+    --background-color: #1a1a1a;
+    --background-color-special: #0A0A0A;
+    --input-background-color: #252525;
+    --input-background-color-special: #2A2A2A;
+    --input-foreground-color: #cccccc;
+    --accent-color: #0070A0;
+    --accent-color-special: #2090D0;
+    --border-color: #303030;
+}

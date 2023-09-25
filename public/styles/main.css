@@ -1,0 +1,80 @@
+@font-face {
+    font-family: "Kanit";
+    src: url("/fonts/Kanit-Regular.ttf");
+    font-weight: 400;
+}
+
+@font-face {
+    font-family: "Kanit";
+    src: url("/fonts/Kanit-Bold.ttf");
+    font-weight: 700;
+}
+
+:root {
+    --font-family-regular: "Kanit";
+    --accent-color: #a15a31;
+    --accent-color-special: #c98659;
+}
+
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    text-transform: uppercase;
+}
+
+#guessContainer {
+    position: relative;
+}
+
+#suggestionBox {
+    position: absolute;
+    margin-top: var(--space-smaller);
+    width: 100%;
+    z-index: 10;
+}
+
+#suggestionBox>* {
+    cursor: pointer;
+    transition-delay: 0;
+    transition-duration: var(--hover-transition-duration);
+    transition-property: background-color;
+    transition-timing-function: ease;
+    padding: var(--space-smaller);
+    border-radius: var(--space-smaller);
+}
+
+#suggestionBox>*:hover {
+    background-color: var(--input-background-color);
+}
+
+#spectacle {
+    animation-name: spin;
+    animation-duration: 10s;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+}
+
+#gameContainer {
+    position: relative;
+}
+
+#flagImage {
+    position: absolute;
+    bottom: 0;
+    right: var(--space-small);
+    pointer-events: none;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
