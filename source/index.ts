@@ -39,6 +39,12 @@ async function displayCountry(countryMeta: CountryMeta, mapping: Dom.ElementMapp
     mapping.image.flagImage.src = `https://flagsapi.com/${countryMeta.code}/shiny/64.png`;
 }
 
+function changePage(mapping: Dom.ElementMapping, page: "welcome" | "game" | "end") {
+    mapping.division.welcomePage.classList.toggle("removed", page !== "welcome");
+    mapping.division.gamePage.classList.toggle("removed", page !== "game");
+    mapping.division.endPage.classList.toggle("removed", page !== "end");
+}
+
 function getCrowsDistance(latitude1: number, longitude1: number, latitude2: number, longitude2: number) {
     const deltaLatitude = (latitude2 - latitude1) * Math.PI / 180;
     const deltaLongitude = (longitude2 - longitude1) * Math.PI / 180;
@@ -55,7 +61,40 @@ function getCrowsDistance(latitude1: number, longitude1: number, latitude2: numb
     return 6371 * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
+function createArrowCanvas(fromLatitude: number, fromLongitude: number, toLatitude: number, toLongitude: number) {
+    const vector: [number, number] = [toLongitude - fromLongitude, toLatitude - fromLatitude];
+    const magnitude = Math.sqrt(vector[0] * vector[0] + vector[1] * vector[1]);
+    vector[0] /= magnitude;
+    vector[1] /= magnitude;
+    const canvas = document.createElement("canvas");
+    const full = 64;
+    canvas.width = canvas.height = full;
+    const context = canvas.getContext("2d");
+    const style = getComputedStyle(document.documentElement);
+    Data.assert(context !== null, "Failed to create 2D canvas context.");
+    context.fillStyle = style.getPropertyValue("--accent-color");
+
+    const half = full / 2;
+    const quarter = half / 2;
+
+    context.beginPath();
+    context.moveTo(half - quarter, half);
+    context.lineTo(0, half);
+    context.lineTo(half, 0);
+    context.lineTo(full, half);
+    context.lineTo(half + quarter, half);
+    context.lineTo(half + quarter, full);
+    context.lineTo(half - quarter, full);
+    context.closePath();
+    context.fill();
+    const angle = (360 + Math.round(180 * Math.atan2(...vector) / Math.PI)) % 360;
+    canvas.style.transform = `rotateZ(${angle}deg)`;
+
+    return canvas;
+}
+
 Dom.onReady(async (mapping) => {
+    let scoreToWin = 0;
     const countryData = await getCountryData();
     const guessing = new ElementFocusReference(mapping.input.queryInput);
     const query = new InputValueReference(mapping.input.queryInput);
@@ -93,6 +132,7 @@ Dom.onReady(async (mapping) => {
             scores.value = scores.value.map((score, index) => playerTurnIndex.value === index ? score + newPoints : score);
             nextPlayersTurn();
             randomizeMysteryCountry();
+            checkForWinner();
         } else {
             Data.assert(mysteryCountry.value !== null, "Missing country!");
             const distance = getCrowsDistance(mysteryCountry.value.latitude, mysteryCountry.value.longitude, country.latitude, country.longitude);
@@ -103,6 +143,8 @@ Dom.onReady(async (mapping) => {
     };
 
     incorrectGuesses.addChangeListener((incorrectGuesses) => {
+        Data.assert(mysteryCountry.value !== null, "Missing country!");
+        const targetCountry = mysteryCountry.value;
         Dom.clear(mapping.tableSection.guessTableBody);
         mapping.tableSection.guessTableBody.append(...incorrectGuesses.map((guess, index) => (Dom.create({
             tagName: "tr",
@@ -118,6 +160,18 @@ Dom.onReady(async (mapping) => {
                 Dom.create({
                     tagName: "td",
                     textContent: `${guess.distance.toFixed(2)}km`
+                }),
+                Dom.create({
+                    tagName: "td",
+                    classList: ["textAlignCenter"],
+                    childNodes: [
+                        createArrowCanvas(
+                            guess.country.latitude,
+                            guess.country.longitude,
+                            targetCountry.latitude,
+                            targetCountry.longitude
+                        )
+                    ]
                 })
             ]
         }))));
@@ -133,6 +187,45 @@ Dom.onReady(async (mapping) => {
         incorrectGuesses.value = [];
         updatePointAwardingTable();
     }
+
+    const win = () => {
+        const placements = Object.entries(scores.value)
+            .sort(([, scoreA], [, scoreB]) => scoreB - scoreA)
+            .map(([playerIndex, score]) => [parseInt(playerIndex) + 1, score]);
+
+        mapping.division.secondPlaceSection.classList.toggle("removed", placements.length < 2);
+        mapping.division.thirdPlaceSection.classList.toggle("removed", placements.length < 3);
+
+        const [playerDisplay, scoreDisplay] = mapping.division.firstPlaceSection.querySelectorAll(".populate");
+        const [playerNumber, playerScore] = placements[0];
+        playerDisplay.textContent = `Player ${playerNumber}`;
+        scoreDisplay.textContent = `${playerScore} Points`
+
+        if (placements.length >= 2) {
+            const [playerDisplay, scoreDisplay] = mapping.division.secondPlaceSection.querySelectorAll(".populate");
+            const [playerNumber, playerScore] = placements[1];
+            playerDisplay.textContent = `Player ${playerNumber}`;
+            scoreDisplay.textContent = `${playerScore} Points`
+        }
+
+        if (placements.length >= 3) {
+            const [playerDisplay, scoreDisplay] = mapping.division.thirdPlaceSection.querySelectorAll(".populate");
+            const [playerNumber, playerScore] = placements[2];
+            playerDisplay.textContent = `Player ${playerNumber}`;
+            scoreDisplay.textContent = `${playerScore} Points`
+        }
+
+        changePage(mapping, "end");
+    };
+
+    const checkForWinner = () => {
+        for (let i = 0; i < scores.value.length; i++) {
+            const score = scores.value[i];
+            if (score >= scoreToWin) {
+                win();
+            }
+        }
+    };
 
     const updateSuggestionBox = () => {
         const show = guessing.value && query.value.length > 0;
@@ -152,11 +245,12 @@ Dom.onReady(async (mapping) => {
     };
 
     const startGame = () => {
-        mapping.division.welcomePage.classList.add("removed");
-        mapping.division.gamePage.classList.remove("removed");
+        changePage(mapping, "game");
         const playerCount = parseInt(mapping.input.playerCountInput.value);
         scores.value = new Array(playerCount).fill(0);
         playerTurnIndex.value = 0;
+        scoreToWin = parseInt(mapping.input.winningScoreInput.value);
+        console.log(scoreToWin);
         randomizeMysteryCountry();
         updatePointAwardingTable();
     };
@@ -192,20 +286,27 @@ Dom.onReady(async (mapping) => {
     });
 
     scores.addChangeListener((scores) => {
-        Dom.clear(mapping.tableSection.scoresTableBody);
-        mapping.tableSection.scoresTableBody.append(...scores.map((score, index) => Dom.create({
+        const createRows = ([playerNumber, score]: [number, number], index: number) => Dom.create({
             tagName: "tr",
             childNodes: [
                 Dom.create({
                     tagName: "td",
-                    textContent: `Player ${index + 1}`
+                    textContent: `Player ${playerNumber}`
                 }),
                 Dom.create({
                     tagName: "td",
                     textContent: `${score} Points`
                 })
             ]
-        })));
+        });
+        const placements: [number, number][] = Object.entries(scores)
+            .sort(([, scoreA], [, scoreB]) => scoreB - scoreA)
+            .map(([playerIndex, score]) => [parseInt(playerIndex) + 1, score]);
+
+        Dom.clear(mapping.tableSection.scoresTableBody);
+        mapping.tableSection.scoresTableBody.append(...placements.map(createRows));
+        Dom.clear(mapping.tableSection.finalScoresTableBody);
+        mapping.tableSection.finalScoresTableBody.append(...placements.map(createRows));
     });
 
     mapping.button.playButton.addEventListener("mousedown", (event) => {
@@ -221,7 +322,7 @@ Dom.onReady(async (mapping) => {
     mapping.button.forfeitButton.addEventListener("mousedown", () => {
         if (confirm("Are you sure you want to forfeit this round?")) {
             if (mysteryCountry.value !== null) {
-                message.value = `You failed to guess the country ${mysteryCountry.value.name}.`;
+                message.value = `Player ${playerTurnIndex.value + 1} failed to guess the country ${mysteryCountry.value.name}.`;
             }
             randomizeMysteryCountry();
             nextPlayersTurn();
@@ -230,9 +331,12 @@ Dom.onReady(async (mapping) => {
 
     mapping.button.abandonButton.addEventListener("mousedown", () => {
         if (confirm("Are you sure you want to abandon this game, and return to the main menu?")) {
-            mapping.division.welcomePage.classList.remove("removed");
-            mapping.division.gamePage.classList.add("removed");
+            changePage(mapping, "welcome");
         }
+    });
+
+    mapping.button.finishedButton.addEventListener("mousedown", () => {
+        changePage(mapping, "welcome");
     });
 
     mapping.form.gameForm.addEventListener("submit", (event) => {
