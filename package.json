@@ -25,7 +25,7 @@
     "homepage": "https://github.com/JeremyBankes/countries#readme",
     "dependencies": {
         "@lucania/toolbox": "^1.0.6",
-        "@lucania/vision": "file:../../@lucania/vision"
+        "@lucania/vision": "^1.0.2"
     },
     "devDependencies": {
         "@babel/preset-env": "^7.22.15",
