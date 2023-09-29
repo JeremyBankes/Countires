@@ -3,7 +3,7 @@ A geography guessing game!
 
 [![PlayButton]](https://geoline.jeremybankes.com)
 
-[PlayButton]: https://img.shields.io/badge/Play_Geoline-37a779?style=for-the-badge
+[PlayButton]: https://img.shields.io/badge/Play_Geoline-c98659?style=for-the-badge
 
 | How to Play | Tips & Tricks |
 |-|-|
